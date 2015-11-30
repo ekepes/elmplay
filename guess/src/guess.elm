@@ -2,63 +2,61 @@ module SignupForm where
 
 import StartApp
 import Effects
+import String
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (id, type', for, value, class)
 
-initialErrors =
-    { username = "", password = "" }
+type alias Model = { guess:String, answer:Int, message:String }
+
+type alias Action = { actionType:String, payload:String } 
 
 view actionDispatcher model =
     form
-        [ id "signup-form" ]
-        [ h1 [] [ text "Sensational Signup Form" ]
-        , label [ for "username-field" ] [ text "username: " ]
+        [ id "guess-form" ]
+        [ h1 [] [ text "Guess My Number!" ]
+        , label [ for "guess-field" ] [ text "Guess (1-10): " ]
         , input
-        [ id "username-field"
+        [ id "guess-field"
         , type' "text"
-        , value model.username
-        , on "input" targetValue (\str -> Signal.message actionDispatcher { actionType = "SET_USERNAME", payload = str })
+        , value model.guess
+        , on "input" targetValue (\str -> Signal.message actionDispatcher { actionType = "SET_GUESS", payload = str })
         ]
         []
-        , div [ class "validation-error" ] [ text model.errors.username ]
-        , label [ for "password" ] [ text "password: " ]
-        , input
-        [ id "password-field"
-        , type' "password"
-        , value model.password
-        , on "input" targetValue (\str -> Signal.message actionDispatcher { actionType = "SET_PASSWORD", payload = str })
-        ]
-        []
-        , div [ class "validation-error" ] [ text model.errors.password ]
-        , div [ class "signup-button", onClick actionDispatcher { actionType = "VALIDATE", payload = "" } ] [ text "Sign Up!" ]
+        , div [ class "validation-error" ] [ text model.message ]
+        , div [ class "signup-button", onClick actionDispatcher { actionType = "CHECK_GUESS", payload = "" } ] [ text "Guess!" ]
         ]
 
-getErrors model =
-    { username =
-        if model.username == "" then
-            "Please enter a username!"
-        else
-            ""
+checkGuess : Model -> String
+checkGuess model =
+    if model.guess == "" then
+        "Please enter a guess!"
+    else
+        let num = String.toInt model.guess
+        in
+            case num of
+                Ok value ->
+                    if value == model.answer then
+                        "You guessed it!"
+                    else
+                        if value < model.answer then
+                            "You are too low."
+                        else
+                            "You are too high."
+                Err error ->
+                    "Please enter a number!"
 
-    , password =
-        if model.password == "" then
-            "Please enter a password!"
-        else
-            ""
-    }
-
+update : Action -> Model -> ( Model, Effects.Effects a )
 update action model =
-    if action.actionType == "VALIDATE" then
-        ( { model | errors = getErrors model }, Effects.none )
-    else if action.actionType == "SET_USERNAME" then
-        ( { model | username = action.payload }, Effects.none )
-    else if action.actionType == "SET_PASSWORD" then
-        ( { model | password = action.payload }, Effects.none )
+    if action.actionType == "CHECK_GUESS" then
+        ( { model | message = checkGuess model }, Effects.none )
+    else if action.actionType == "SET_GUESS" then
+        ( { model | guess = action.payload }, Effects.none )
     else
         ( model, Effects.none )
 
-initialModel = { username = "", password = "", errors = initialErrors }
+initialModel : Model
+initialModel = { guess = "", answer = 5, message="" }
 
 app =
     StartApp.start
